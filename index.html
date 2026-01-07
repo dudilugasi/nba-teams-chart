@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <title>D3 Team Timeline</title>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
   <script src="data.js"></script>
   <style>
     body { 
@@ -12,16 +13,6 @@
       padding: 0;
       overflow-x: hidden;
       overflow-y: auto;
-    }
-    
-    #controls {
-      position: sticky;
-      top: 0;
-      background: white;
-      z-index: 100;
-      padding: 20px;
-      border-bottom: 1px solid #ccc;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
     #axisContainer {
@@ -75,72 +66,16 @@
       stroke-width: 2;
       pointer-events: none;
     }
+    
+    .dg.ac {
+      z-index: 1000 !important;
+    }
   </style>
 </head>
 <body>
-  <div id="controls">
-    <div style="padding: 0 0 10px 0; display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
-      <label style="font-size: 14px; cursor: pointer;">
-        <input type="checkbox" id="showDefunct" style="cursor: pointer; margin-right: 5px;">
-        Show defunct teams
-      </label>
-      
-      <label style="font-size: 14px; cursor: pointer;">
-        <input type="checkbox" id="showChampions" style="cursor: pointer; margin-right: 5px;">
-        Only teams with championships
-      </label>
-      
-      <label style="font-size: 14px; cursor: pointer;">
-        <input type="checkbox" id="showMarkers" checked style="cursor: pointer; margin-right: 5px;">
-        Show championship markers
-      </label>
-      
-      <label style="font-size: 14px; cursor: pointer;">
-        <input type="checkbox" id="showWrappedLabels" style="cursor: pointer; margin-right: 5px;">
-        Show labels that don't fit
-      </label>
-      
-      <div style="display: flex; gap: 5px; align-items: center;">
-        <label style="font-size: 14px;">League:</label>
-        <select id="leagueFilter" style="font-size: 14px; padding: 2px 5px; cursor: pointer;">
-          <option value="all">All Leagues</option>
-          <option value="NBA">NBA Only</option>
-          <option value="ABA">ABA Only</option>
-          <option value="NBL">NBL Only</option>
-        </select>
-      </div>
-      
-      <div style="display: flex; gap: 5px; align-items: center;">
-        <label style="font-size: 14px;">Sort by:</label>
-        <select id="sortBy" style="font-size: 14px; padding: 2px 5px; cursor: pointer;">
-          <option value="name">Name</option>
-          <option value="championships">Championships</option>
-          <option value="founded" selected>Founded Date</option>
-        </select>
-      </div>
-      
-      <input type="text" id="searchTeam" placeholder="Search team..." style="font-size: 14px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 3px;">
-      
-      <button id="resetFilters" style="font-size: 14px; padding: 4px 12px; cursor: pointer; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px;">
-        Reset Filters
-      </button>
-      
-      <div id="teamCount" style="font-size: 14px; font-weight: bold; color: #666;"></div>
-    </div>
-    
-    <div style="padding: 10px 0 0 0; display: flex; gap: 10px; align-items: center;">
-      <label style="font-size: 14px; font-weight: bold;">Time Travel:</label>
-      <input type="range" id="yearSlider" list="yearTicks" min="1923" max="2026" value="2026" style="flex: 1; cursor: pointer;">
-      <datalist id="yearTicks"></datalist>
-      <span id="yearDisplay" style="font-size: 14px; font-weight: bold; min-width: 80px;">2026 (All)</span>
-      <button id="resetYear" style="font-size: 14px; padding: 4px 12px; cursor: pointer; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px;">
-        Reset Year
-      </button>
-    </div>
-  </div>
-  
   <div id="tooltip"></div>
   <div id="yearTooltip"></div>
+  <div id="teamCount" style="position: fixed; bottom: 10px; right: 10px; font-size: 14px; font-weight: bold; color: #666; background: rgba(255,255,255,0.9); padding: 8px 12px; border-radius: 4px; z-index: 1001; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
   
   <div id="chartContainer">
     <svg id="chart"></svg>
@@ -168,45 +103,78 @@
     const significantYears = getSignificantYears();
     const currentYear = new Date().getFullYear();
     
-    // Set up year slider
-    const yearSlider = d3.select("#yearSlider");
-    yearSlider.attr("min", d3.min(significantYears));
-    yearSlider.attr("max", currentYear);
-    yearSlider.property("value", currentYear);
-    
-    // Populate datalist with significant years
-    const yearTicks = d3.select("#yearTicks");
-    significantYears.forEach(year => {
-      yearTicks.append("option").attr("value", year);
-    });
-    
-    // Set controls height CSS variable for sticky positioning
-    const setControlsHeight = () => {
-      const controlsHeight = document.getElementById('controls').offsetHeight;
-      document.documentElement.style.setProperty('--controls-height', controlsHeight + 'px');
+    // Settings object for dat.gui
+    const settings = {
+      showDefunct: false,
+      showChampions: false,
+      showMarkers: true,
+      showWrappedLabels: false,
+      leagueFilter: 'all',
+      sortBy: 'founded',
+      searchTeam: '',
+      selectedYear: currentYear,
+      resetFilters: function() {
+        this.showDefunct = false;
+        this.showChampions = false;
+        this.showMarkers = true;
+        this.showWrappedLabels = false;
+        this.leagueFilter = 'all';
+        this.sortBy = 'founded';
+        this.searchTeam = '';
+        this.selectedYear = currentYear;
+        gui.updateDisplay();
+        renderChart();
+      },
+      resetYear: function() {
+        this.selectedYear = currentYear;
+        gui.updateDisplay();
+        renderChart();
+      }
     };
-    setControlsHeight();
-    window.addEventListener('resize', setControlsHeight);
+    
+    // Create dat.gui
+    const gui = new dat.GUI({ width: 300, autoPlace: false });
+    
+    // Position it at bottom left
+    gui.domElement.style.position = 'fixed';
+    gui.domElement.style.left = '10px';
+    gui.domElement.style.bottom = '25px';
+    gui.domElement.style.zIndex = '1000';
+    document.body.appendChild(gui.domElement);
+    
+    // Filters folder
+    const filtersFolder = gui.addFolder('Filters');
+    filtersFolder.add(settings, 'showDefunct').name('Show Defunct Teams').onChange(renderChart);
+    filtersFolder.add(settings, 'showChampions').name('Only Champions').onChange(renderChart);
+    filtersFolder.add(settings, 'showMarkers').name('Show Championship Markers').onChange(renderChart);
+    filtersFolder.add(settings, 'showWrappedLabels').name('Show Wrapped Labels').onChange(renderChart);
+    filtersFolder.add(settings, 'leagueFilter', ['all', 'NBA', 'ABA', 'NBL']).name('League').onChange(renderChart);
+    filtersFolder.add(settings, 'sortBy', ['name', 'championships', 'founded']).name('Sort By').onChange(renderChart);
+    filtersFolder.add(settings, 'searchTeam').name('Search Team').onChange(renderChart);
+    
+    // Time Travel folder
+    const timeFolder = gui.addFolder('Time Travel');
+    timeFolder.add(settings, 'selectedYear', d3.min(significantYears), currentYear, 1).name('Year').onChange(renderChart);
+    timeFolder.add(settings, 'resetYear').name('Reset Year');
+    
+    // Actions folder
+    const actionsFolder = gui.addFolder('Actions');
+    actionsFolder.add(settings, 'resetFilters').name('Reset All Filters');
 
     function renderChart() {
       // Clear existing chart and axis
       d3.select("#chart").selectAll("*").remove();
       d3.select("#axisChart").selectAll("*").remove();
 
-      // Get filter values
-      const showDefunct = d3.select("#showDefunct").property("checked");
-      const showChampions = d3.select("#showChampions").property("checked");
-      const showMarkers = d3.select("#showMarkers").property("checked");
-      const showWrappedLabels = d3.select("#showWrappedLabels").property("checked");
-      const leagueFilter = d3.select("#leagueFilter").property("value");
-      const sortBy = d3.select("#sortBy").property("value");
-      const searchTerm = d3.select("#searchTeam").property("value").toLowerCase();
-      const selectedYear = +d3.select("#yearSlider").property("value");
-
-      // Update year display
-      d3.select("#yearDisplay").text(
-        selectedYear >= currentYear ? `${currentYear} (All)` : selectedYear
-      );
+      // Get filter values from settings object
+      const showDefunct = settings.showDefunct;
+      const showChampions = settings.showChampions;
+      const showMarkers = settings.showMarkers;
+      const showWrappedLabels = settings.showWrappedLabels;
+      const leagueFilter = settings.leagueFilter;
+      const sortBy = settings.sortBy;
+      const searchTerm = settings.searchTeam.toLowerCase();
+      const selectedYear = Math.round(settings.selectedYear);
 
       // Filter data based on all criteria
       let data = globalData.teams;
@@ -548,93 +516,6 @@
 
   // Initial render
   renderChart();
-
-  // Event listeners for all controls
-  d3.select("#showDefunct").on("change", renderChart);
-  d3.select("#showChampions").on("change", renderChart);
-  d3.select("#showMarkers").on("change", renderChart);
-  d3.select("#showWrappedLabels").on("change", renderChart);
-  d3.select("#leagueFilter").on("change", renderChart);
-  d3.select("#sortBy").on("change", renderChart);
-  d3.select("#searchTeam").on("input", renderChart);
-  
-  // Year slider with tooltip
-  const sliderTooltip = d3.select("#yearTooltip");
-  
-  d3.select("#yearSlider").on("input", function() {
-    const value = +this.value;
-    // Snap to nearest significant year
-    const nearest = significantYears.reduce((prev, curr) => 
-      Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev
-    );
-    // Only snap if not at max (current year)
-    if (value < currentYear) {
-      d3.select(this).property("value", nearest);
-    }
-    renderChart();
-  })
-  .on("mousemove", function(event) {
-    const rect = this.getBoundingClientRect();
-    const min = +this.min;
-    const max = +this.max;
-    
-    // Calculate year based on mouse position
-    const percent = (event.clientX - rect.left) / rect.width;
-    const hoverYear = Math.round(min + percent * (max - min));
-    
-    // Find nearest significant year
-    const nearest = significantYears.reduce((prev, curr) => 
-      Math.abs(curr - hoverYear) < Math.abs(prev - hoverYear) ? curr : prev
-    );
-    
-    sliderTooltip
-      .style("opacity", 1)
-      .text(nearest)
-      .style("left", (event.clientX) + "px")
-      .style("top", (rect.top - 35) + "px");
-  })
-  .on("mouseenter", function(event) {
-    const rect = this.getBoundingClientRect();
-    const min = +this.min;
-    const max = +this.max;
-    
-    // Calculate year based on mouse position
-    const percent = (event.clientX - rect.left) / rect.width;
-    const hoverYear = Math.round(min + percent * (max - min));
-    
-    // Find nearest significant year
-    const nearest = significantYears.reduce((prev, curr) => 
-      Math.abs(curr - hoverYear) < Math.abs(prev - hoverYear) ? curr : prev
-    );
-    
-    sliderTooltip
-      .style("opacity", 1)
-      .text(nearest)
-      .style("left", (event.clientX) + "px")
-      .style("top", (rect.top - 35) + "px");
-  })
-  .on("mouseleave", function() {
-    sliderTooltip.style("opacity", 0);
-  });
-  
-  // Reset button
-  d3.select("#resetFilters").on("click", function() {
-    d3.select("#showDefunct").property("checked", false);
-    d3.select("#showChampions").property("checked", false);
-    d3.select("#showMarkers").property("checked", true);
-    d3.select("#showWrappedLabels").property("checked", false);
-    d3.select("#leagueFilter").property("value", "all");
-    d3.select("#sortBy").property("value", "founded");
-    d3.select("#searchTeam").property("value", "");
-    d3.select("#yearSlider").property("value", currentYear);
-    renderChart();
-  });
-  
-  // Reset year button
-  d3.select("#resetYear").on("click", function() {
-    d3.select("#yearSlider").property("value", currentYear);
-    renderChart();
-  });
   </script>
 </body>
 </html>
