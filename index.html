@@ -149,7 +149,7 @@
     filtersFolder.add(settings, 'showMarkers').name('Show Championship Markers').onChange(renderChart);
     filtersFolder.add(settings, 'showWrappedLabels').name('Show Wrapped Labels').onChange(renderChart);
     filtersFolder.add(settings, 'leagueFilter', ['all', 'NBA', 'ABA', 'NBL']).name('League').onChange(renderChart);
-    filtersFolder.add(settings, 'sortBy', ['name', 'championships', 'founded']).name('Sort By').onChange(renderChart);
+    filtersFolder.add(settings, 'sortBy', ['name', 'championships', 'founded', 'conference']).name('Sort By').onChange(renderChart);
     filtersFolder.add(settings, 'searchTeam').name('Search Team').onChange(renderChart);
     
     // Time Travel folder
@@ -230,6 +230,31 @@
           const bStart = d3.min(b.segments, s => s.start);
           return aStart - bStart; // Ascending
         });
+      } else if (sortBy === "conference") {
+        // Define conference and division order
+        const conferenceOrder = { "Eastern": 0, "Western": 1 };
+        const divisionOrder = {
+          "Atlantic": 0, "Central": 1, "Southeast": 2,  // Eastern divisions
+          "Northwest": 3, "Pacific": 4, "Southwest": 5   // Western divisions
+        };
+        
+        data = data.sort((a, b) => {
+          // Teams without conference go to the end
+          if (!a.conference && !b.conference) return a.lastName.localeCompare(b.lastName);
+          if (!a.conference) return 1;
+          if (!b.conference) return -1;
+          
+          // Sort by conference first
+          const confCompare = conferenceOrder[a.conference] - conferenceOrder[b.conference];
+          if (confCompare !== 0) return confCompare;
+          
+          // Then by division
+          const divCompare = divisionOrder[a.division] - divisionOrder[b.division];
+          if (divCompare !== 0) return divCompare;
+          
+          // Finally by name within division
+          return a.lastName.localeCompare(b.lastName);
+        });
       } else { // name
         data = data.sort((a, b) => a.lastName.localeCompare(b.lastName));
       }
@@ -240,7 +265,8 @@
       // ---- 2) Layout ----
       const svg = d3.select("#chart");
       const width = window.innerWidth - 40; // full width minus padding
-      const margin = { top: 40, right: 30, bottom: 0, left: 30 };
+      // Add extra right margin when sorted by conference for indicators
+      const margin = { top: 40, right: sortBy === "conference" ? 55 : 30, bottom: 0, left: 30 };
       const rowH = 26;
       const height = margin.top + margin.bottom + data.length * rowH;
 
@@ -511,6 +537,108 @@
         .attr("text-anchor", textAnchor)
         .attr("font-size", 12)
         .text(label);
+    }
+
+    // ---- 11) Conference/Division indicators (when sorted by conference) ----
+    if (sortBy === "conference") {
+      const conferenceColors = {
+        "Eastern": "#0066cc",
+        "Western": "#cc3333"
+      };
+      
+      const divisionColors = {
+        "Atlantic": "#1e90ff",     // Dodger Blue
+        "Central": "#4169e1",      // Royal Blue
+        "Southeast": "#6495ed",    // Cornflower Blue
+        "Northwest": "#ff6b6b",    // Light Red
+        "Pacific": "#ff4757",      // Red
+        "Southwest": "#ee5a6f"     // Dark Pink
+      };
+      
+      const barWidth = 8;
+      const gap = 5;
+      
+      // Group teams by conference and division
+      const conferenceGroups = d3.group(data, d => d.conference);
+      const divisionGroups = d3.group(data, d => `${d.conference}-${d.division}`);
+      
+      // Draw division bars (left)
+      divisionGroups.forEach((teams, key) => {
+        const firstTeam = teams[0];
+        if (firstTeam.conference && firstTeam.division) {
+          const lastTeam = teams[teams.length - 1];
+          const yStart = y(firstTeam.lastName);
+          const yEnd = y(lastTeam.lastName) + y.bandwidth();
+          
+          g.append("rect")
+            .attr("x", innerW + gap)
+            .attr("y", yStart)
+            .attr("width", barWidth)
+            .attr("height", yEnd - yStart)
+            .attr("fill", divisionColors[firstTeam.division])
+            .attr("rx", 2)
+            .style("cursor", "pointer")
+            .on("mouseover", function(event) {
+              const tooltipNode = tooltip.node();
+              tooltip
+                .style("opacity", 1)
+                .html(`<strong>${firstTeam.division}</strong> Division<br/>${firstTeam.conference} Conference`);
+              const tooltipWidth = tooltipNode.offsetWidth;
+              tooltip
+                .style("left", (event.clientX - tooltipWidth - 10) + "px")
+                .style("top", (event.clientY - 10) + "px");
+            })
+            .on("mousemove", function(event) {
+              const tooltipNode = tooltip.node();
+              const tooltipWidth = tooltipNode.offsetWidth;
+              tooltip
+                .style("left", (event.clientX - tooltipWidth - 10) + "px")
+                .style("top", (event.clientY - 10) + "px");
+            })
+            .on("mouseout", function() {
+              tooltip.style("opacity", 0);
+            });
+        }
+      });
+      
+      // Draw conference bars (right)
+      conferenceGroups.forEach((teams, conference) => {
+        if (conference && conference !== "undefined") {
+          const firstTeam = teams[0];
+          const lastTeam = teams[teams.length - 1];
+          const yStart = y(firstTeam.lastName);
+          const yEnd = y(lastTeam.lastName) + y.bandwidth();
+          
+          g.append("rect")
+            .attr("x", innerW + gap + barWidth + gap)
+            .attr("y", yStart)
+            .attr("width", barWidth)
+            .attr("height", yEnd - yStart)
+            .attr("fill", conferenceColors[conference])
+            .attr("rx", 2)
+            .style("cursor", "pointer")
+            .on("mouseover", function(event) {
+              const tooltipNode = tooltip.node();
+              tooltip
+                .style("opacity", 1)
+                .html(`<strong>${conference}</strong> Conference`);
+              const tooltipWidth = tooltipNode.offsetWidth;
+              tooltip
+                .style("left", (event.clientX - tooltipWidth - 10) + "px")
+                .style("top", (event.clientY - 10) + "px");
+            })
+            .on("mousemove", function(event) {
+              const tooltipNode = tooltip.node();
+              const tooltipWidth = tooltipNode.offsetWidth;
+              tooltip
+                .style("left", (event.clientX - tooltipWidth - 10) + "px")
+                .style("top", (event.clientY - 10) + "px");
+            })
+            .on("mouseout", function() {
+              tooltip.style("opacity", 0);
+            });
+        }
+      });
     }
   }
 

@@ -7,6 +7,8 @@ globalData = {
     "teams": [
         {
             "lastName": "Boston Celtics",
+            "conference": "Eastern",
+            "division": "Atlantic",
             "segments" : [
                 { "start" : 1946, "label": "Boston Celtics", "league": "NBA", "backgroundColor": "#007A33", "textColor": "#FFFFFF" }
             ],
@@ -51,6 +53,8 @@ globalData = {
         },
         {
             "lastName": "New York Knicks",
+            "conference": "Eastern",
+            "division": "Atlantic",
             "segments" : [
                 { "start" : 1946, "label": "New York Knicks", "league": "NBA", "backgroundColor": "#006BB6", "textColor": "#F58426" }
             ],
@@ -61,6 +65,8 @@ globalData = {
         },
         {
             "lastName": "Golden State Warriors",
+            "conference": "Western",
+            "division": "Pacific",
             "segments" : [
                 { "start" : 1946, "end" : 1962, "label": "Philadelphia Warriors", "league": "NBA", "backgroundColor": "#1D428A", "textColor": "red" },
                 { "start" : 1962, "end" : 1971, "label": "San Francisco Warriors", "league": "NBA", "backgroundColor": "#FFC72C", "textColor": "#1D428A" },
@@ -118,6 +124,8 @@ globalData = {
         },
         {
             "lastName": "Detroit Pistons",
+            "conference": "Eastern",
+            "division": "Central",
             "segments" : [
                 { "start" : 1941, "end" : 1948, "label": "Ft. Wayne Zollner Pistons (Ind)", "league": "Ind" },
                 { "start" : 1948, "end" : 1957, "label": "Fort Wayne Pistons (NBL)", "league": "NBL" },
@@ -138,6 +146,8 @@ globalData = {
         },
         {
             "lastName": "Los Angeles Lakers",
+            "conference": "Western",
+            "division": "Pacific",
             "segments" : [
                 { "start" : 1947, "end" : 1948, "label": "Minneapolis Lakers (NBL)", "league": "NBL" },
                 { "start" : 1948, "end" : 1960, "label": "Minneapolis Lakers", "league": "NBA", "backgroundColor": "#4199cc", "textColor": "#FDB927" },
@@ -166,6 +176,8 @@ globalData = {
         },
         {
             "lastName": "Sacramento Kings",
+            "conference": "Western",
+            "division": "Pacific",
             "segments" : [
                 { "start" : 1923, "end" : 1944, "label": "Rochester Seagrams (Ind)", "league": "Ind" },
                 { "start" : 1945, "end" : 1948, "label": "Rochester Royals (NBL)", "league": "NBL" },
@@ -214,6 +226,8 @@ globalData = {
         },
         {
             "lastName": "Philadelphia 76ers",
+            "conference": "Eastern",
+            "division": "Atlantic",
             "segments" : [
                 { "start" : 1946, "end" : 1949, "label": "Syracuse Nationals (NBL)", "league": "NBL" },
                 { "start" : 1949, "end" : 1963, "label": "Syracuse Nationals", "league": "NBA", "backgroundColor": "#d6303a", "textColor": "#14143f" },
@@ -227,6 +241,8 @@ globalData = {
         },
         {
             "lastName": "Atlanta Hawks",
+            "conference": "Eastern",
+            "division": "Southeast",
             "segments" : [
                 { "start" : 1946, "end" : 1949, "label": "Tri-Cities Blackhawks (NBL)", "league": "NBL" },
                 { "start" : 1949, "end" : 1951, "label": "Tri-Cities Blackhawks", "league": "NBA", "backgroundColor": "#00004c", "textColor": "#C1D32F" },
@@ -248,6 +264,8 @@ globalData = {
         },
         {
             "lastName": "Washington Wizards",
+            "conference": "Eastern",
+            "division": "Southeast",
             "segments" : [
                 { "start" : 1961, "end" : 1962, "label": "Chicago Packers", "league": "NBA", "backgroundColor": "#E31837", "textColor": "#002B5C" },
                 { "start" : 1962, "end" : 1963, "label": "Chicago Zephyrs", "league": "NBA", "backgroundColor": "#febf00", "textColor": "#E31837" },
@@ -262,6 +280,8 @@ globalData = {
         },
         {
             "lastName": "Chicago Bulls",
+            "conference": "Eastern",
+            "division": "Central",
             "segments" : [
                 { "start" : 1966, "label": "Chicago Bulls", "league": "NBA", "backgroundColor": "#CE1141", "textColor": "#000000" }
             ],
@@ -276,6 +296,8 @@ globalData = {
         },
         {
             "lastName": "Houston Rockets",
+            "conference": "Western",
+            "division": "Southwest",
             "segments" : [
                 { "start" : 1967, "end" : 1971, "label": "San Diego Rockets", "league": "NBA", "backgroundColor": "#008247", "textColor": "#C4CED4" },
                 { "start" : 1971, "label": "Houston Rockets", "league": "NBA", "backgroundColor": "#CE1141", "textColor": "#C4CED4" }
@@ -287,6 +309,8 @@ globalData = {
         },
         {
             "lastName": "Oklahoma City Thunder",
+            "conference": "Western",
+            "division": "Northwest",
             "segments" : [
                 { "start" : 1967, "end" : 2008, "label": "Seattle SuperSonics", "league": "NBA", "backgroundColor": "#008247", "textColor": "#FFC200" },
                 { "start" : 2008, "label": "Oklahoma City Thunder", "league": "NBA", "backgroundColor": "#007AC1", "textColor": "#EF3B24" }
@@ -298,6 +322,8 @@ globalData = {
         },
         {
             "lastName": "Milwaukee Bucks",
+            "conference": "Eastern",
+            "division": "Central",
             "segments" : [
                 { "start" : 1968, "label": "Milwaukee Bucks", "league": "NBA", "backgroundColor": "#00471B", "textColor": "#EEE1C6" }
             ],
@@ -308,12 +334,16 @@ globalData = {
         },
         {
             "lastName": "Phoenix Suns",
+            "conference": "Western",
+            "division": "Pacific",
             "segments" : [
                 { "start" : 1968, "label": "Phoenix Suns", "league": "NBA", "backgroundColor": "#1D1160", "textColor": "#E56020" }
             ]
         },
         {
             "lastName": "Los Angeles Clippers",
+            "conference": "Western",
+            "division": "Pacific",
             "segments" : [
                 { "start" : 1970, "end" : 1978, "label": "Buffalo Braves", "league": "NBA", "backgroundColor": "#027fbf", "textColor": "#1D428A" },
                 { "start" : 1978, "end" : 1984, "label": "San Diego Clippers", "league": "NBA", "backgroundColor": "#027fbf", "textColor": "#1D428A" },
@@ -322,6 +352,8 @@ globalData = {
         },
         {
             "lastName": "Portland Trail Blazers",
+            "conference": "Western",
+            "division": "Northwest",
             "segments" : [
                 { "start" : 1970, "label": "Portland Trail Blazers", "league": "NBA", "backgroundColor": "#E03A3E", "textColor": "#000000" }
             ],
@@ -331,6 +363,8 @@ globalData = {
         },
         {
             "lastName": "Utah Jazz",
+            "conference": "Western",
+            "division": "Northwest",
             "segments" : [
                 { "start" : 1974, "end" : 1979, "label": "New Orleans Jazz", "league": "NBA", "backgroundColor": "#002B5C", "textColor": "#F9A01B" },
                 { "start" : 1979, "label": "Utah Jazz", "league": "NBA", "backgroundColor": "#002B5C", "textColor": "#F9A01B" }
@@ -338,6 +372,8 @@ globalData = {
         },
         {
             "lastName": "Denver Nuggets",
+            "conference": "Western",
+            "division": "Northwest",
             "segments" : [
                 { "start" : 1967, "end" : 1974, "label": "Denver Rockets (ABA)", "league": "ABA" },
                 { "start" : 1974, "end" : 1976, "label": "Denver Nuggets (ABA)", "league": "ABA" },
@@ -349,6 +385,8 @@ globalData = {
         },
         {
             "lastName": "Indiana Pacers",
+            "conference": "Eastern",
+            "division": "Central",
             "segments" : [
                 { "start" : 1967, "end" : 1976, "label": "Indiana Pacers (ABA)", "league": "ABA" },
                 { "start" : 1976, "label": "Indiana Pacers", "league": "NBA", "backgroundColor": "#002D62", "textColor": "#FDBB30" }
@@ -361,6 +399,8 @@ globalData = {
         },
         {
             "lastName": "Brooklyn Nets",
+            "conference": "Eastern",
+            "division": "Atlantic",
             "segments" : [
                 { "start" : 1967, "end" : 1968, "label": "New Jersey Americans (ABA)", "league": "ABA" },
                 { "start" : 1968, "end" : 1976, "label": "New York Nets (ABA)", "league": "ABA" },
@@ -375,6 +415,8 @@ globalData = {
         },
         {
             "lastName": "San Antonio Spurs",
+            "conference": "Western",
+            "division": "Southwest",
             "segments" : [
                 { "start" : 1967, "end" : 1973, "label": "Dallas Chaparrals (ABA)", "league": "ABA" },
                 { "start" : 1973, "end" : 1976, "label": "San Antonio Spurs (ABA)", "league": "ABA" },
@@ -390,6 +432,8 @@ globalData = {
         },
         {
             "lastName": "Dallas Mavericks",
+            "conference": "Western",
+            "division": "Southwest",
             "segments" : [
                 { "start" : 1980, "label": "Dallas Mavericks", "league": "NBA", "backgroundColor": "#00538C", "textColor": "#B8C4CA" }
             ],
@@ -399,6 +443,8 @@ globalData = {
         },
         {
             "lastName": "Charlotte Hornets",
+            "conference": "Eastern",
+            "division": "Southeast",
             "segments" : [
                 { "start" : 1988, "end" : 2002, "label": "Charlotte Hornets", "league": "NBA", "backgroundColor": "#0096c4", "textColor": "#230a66" },
                 { "start" : 2004, "end" : 2014, "label": "Charlotte Bobcats", "league": "NBA", "backgroundColor": "#ff642b", "textColor": "#0388b0" },
@@ -407,6 +453,8 @@ globalData = {
         },
         {
             "lastName": "Miami Heat",
+            "conference": "Eastern",
+            "division": "Southeast",
             "segments" : [
                 { "start" : 1988, "label": "Miami Heat", "league": "NBA", "backgroundColor": "#98002E", "textColor": "#F9A01B" }
             ],
@@ -418,18 +466,24 @@ globalData = {
         },
         {
             "lastName": "Orlando Magic",
+            "conference": "Eastern",
+            "division": "Southeast",
             "segments" : [
                 { "start" : 1989, "label": "Orlando Magic", "league": "NBA", "backgroundColor": "#0077C0", "textColor": "#C4CED4" }
             ]
         },
         {
             "lastName": "Minnesota Timberwolves",
+            "conference": "Western",
+            "division": "Northwest",
             "segments" : [
                 { "start" : 1989, "label": "Minnesota Timberwolves", "league": "NBA", "backgroundColor": "#0C2340", "textColor": "#236192" }
             ]
         },
         {
             "lastName": "Toronto Raptors",
+            "conference": "Eastern",
+            "division": "Atlantic",
             "segments" : [
                 { "start" : 1995, "label": "Toronto Raptors", "league": "NBA", "backgroundColor": "#CE1141", "textColor": "#000000" }
             ],
@@ -439,6 +493,8 @@ globalData = {
         },
         {
             "lastName": "Memphis Grizzlies",
+            "conference": "Western",
+            "division": "Southwest",
             "segments" : [
                 { "start" : 1995, "end" : 2001, "label": "Vancouver Grizzlies", "league": "NBA", "backgroundColor": "#00a5a5", "textColor": "#12173F" },
                 { "start" : 2001, "label": "Memphis Grizzlies", "league": "NBA", "backgroundColor": "#5D76A9", "textColor": "#12173F" }
@@ -446,6 +502,8 @@ globalData = {
         },
         {
             "lastName": "New Orleans Pelicans",
+            "conference": "Western",
+            "division": "Southwest",
             "segments" : [
                 { "start" : 2002, "end" : 2005, "label": "New Orleans Hornets", "league": "NBA", "backgroundColor": "#febf00", "textColor": "#C8102E" },
                 { "start" : 2005, "end" : 2007, "label": "New Orleans/Oklahoma City Hornets", "league": "NBA", "backgroundColor": "#0096c4", "textColor": "#C8102E" },
@@ -455,6 +513,8 @@ globalData = {
         },
         {
             "lastName": "Cleveland Cavaliers",
+            "conference": "Eastern",
+            "division": "Central",
             "segments" : [
                 { "start" : 1970, "label": "Cleveland Cavaliers", "league": "NBA", "backgroundColor": "#860038", "textColor": "#FDBB30" }
             ],
