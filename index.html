@@ -1,0 +1,640 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>D3 Team Timeline</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="data.js"></script>
+  <style>
+    body { 
+      font-family: system-ui, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    
+    #controls {
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 100;
+      padding: 20px;
+      border-bottom: 1px solid #ccc;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    #axisContainer {
+      position: sticky;
+      bottom: 0;
+      background: white;
+      z-index: 99;
+      padding: 0 20px 0 20px;
+      border-top: 1px solid #eee;
+      box-shadow: 0 -2px 4px rgba(0,0,0,0.05);
+    }
+    
+    #chartContainer {
+      padding: 0 20px 0px 20px;
+    }
+    
+    .axis text { font-size: 12px; }
+    .row-label { font-size: 12px; dominant-baseline: middle; }
+    .seg-label { font-size: 11px; dominant-baseline: middle; pointer-events: none; }
+    .grid line { stroke: #e6e6e6; }
+    .grid path { display: none; }
+    
+    #tooltip {
+      position: fixed;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      border-radius: 4px;
+      font-size: 12px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s;
+      z-index: 1000;
+    }
+    
+    #yearTooltip {
+      position: fixed;
+      padding: 4px 8px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border-radius: 3px;
+      font-size: 14px;
+      font-weight: bold;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 999;
+    }
+    
+    .year-highlight-line {
+      stroke: rgba(255, 0, 0, 0.5);
+      stroke-width: 2;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <div style="padding: 0 0 10px 0; display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
+      <label style="font-size: 14px; cursor: pointer;">
+        <input type="checkbox" id="showDefunct" style="cursor: pointer; margin-right: 5px;">
+        Show defunct teams
+      </label>
+      
+      <label style="font-size: 14px; cursor: pointer;">
+        <input type="checkbox" id="showChampions" style="cursor: pointer; margin-right: 5px;">
+        Only teams with championships
+      </label>
+      
+      <label style="font-size: 14px; cursor: pointer;">
+        <input type="checkbox" id="showMarkers" checked style="cursor: pointer; margin-right: 5px;">
+        Show championship markers
+      </label>
+      
+      <label style="font-size: 14px; cursor: pointer;">
+        <input type="checkbox" id="showWrappedLabels" style="cursor: pointer; margin-right: 5px;">
+        Show labels that don't fit
+      </label>
+      
+      <div style="display: flex; gap: 5px; align-items: center;">
+        <label style="font-size: 14px;">League:</label>
+        <select id="leagueFilter" style="font-size: 14px; padding: 2px 5px; cursor: pointer;">
+          <option value="all">All Leagues</option>
+          <option value="NBA">NBA Only</option>
+          <option value="ABA">ABA Only</option>
+          <option value="NBL">NBL Only</option>
+        </select>
+      </div>
+      
+      <div style="display: flex; gap: 5px; align-items: center;">
+        <label style="font-size: 14px;">Sort by:</label>
+        <select id="sortBy" style="font-size: 14px; padding: 2px 5px; cursor: pointer;">
+          <option value="name">Name</option>
+          <option value="championships">Championships</option>
+          <option value="founded" selected>Founded Date</option>
+        </select>
+      </div>
+      
+      <input type="text" id="searchTeam" placeholder="Search team..." style="font-size: 14px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 3px;">
+      
+      <button id="resetFilters" style="font-size: 14px; padding: 4px 12px; cursor: pointer; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px;">
+        Reset Filters
+      </button>
+      
+      <div id="teamCount" style="font-size: 14px; font-weight: bold; color: #666;"></div>
+    </div>
+    
+    <div style="padding: 10px 0 0 0; display: flex; gap: 10px; align-items: center;">
+      <label style="font-size: 14px; font-weight: bold;">Time Travel:</label>
+      <input type="range" id="yearSlider" list="yearTicks" min="1923" max="2026" value="2026" style="flex: 1; cursor: pointer;">
+      <datalist id="yearTicks"></datalist>
+      <span id="yearDisplay" style="font-size: 14px; font-weight: bold; min-width: 80px;">2026 (All)</span>
+      <button id="resetYear" style="font-size: 14px; padding: 4px 12px; cursor: pointer; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px;">
+        Reset Year
+      </button>
+    </div>
+  </div>
+  
+  <div id="tooltip"></div>
+  <div id="yearTooltip"></div>
+  
+  <div id="chartContainer">
+    <svg id="chart"></svg>
+  </div>
+  
+  <div id="axisContainer">
+    <svg id="axisChart"></svg>
+  </div>
+
+  <script>
+    const tooltip = d3.select("#tooltip");
+    
+    // Calculate all years when team count changed
+    function getSignificantYears() {
+      const allYears = new Set();
+      globalData.teams.forEach(team => {
+        team.segments.forEach(seg => {
+          allYears.add(seg.start);
+          if (seg.end) allYears.add(seg.end);
+        });
+      });
+      return Array.from(allYears).sort((a, b) => a - b);
+    }
+    
+    const significantYears = getSignificantYears();
+    const currentYear = new Date().getFullYear();
+    
+    // Set up year slider
+    const yearSlider = d3.select("#yearSlider");
+    yearSlider.attr("min", d3.min(significantYears));
+    yearSlider.attr("max", currentYear);
+    yearSlider.property("value", currentYear);
+    
+    // Populate datalist with significant years
+    const yearTicks = d3.select("#yearTicks");
+    significantYears.forEach(year => {
+      yearTicks.append("option").attr("value", year);
+    });
+    
+    // Set controls height CSS variable for sticky positioning
+    const setControlsHeight = () => {
+      const controlsHeight = document.getElementById('controls').offsetHeight;
+      document.documentElement.style.setProperty('--controls-height', controlsHeight + 'px');
+    };
+    setControlsHeight();
+    window.addEventListener('resize', setControlsHeight);
+
+    function renderChart() {
+      // Clear existing chart and axis
+      d3.select("#chart").selectAll("*").remove();
+      d3.select("#axisChart").selectAll("*").remove();
+
+      // Get filter values
+      const showDefunct = d3.select("#showDefunct").property("checked");
+      const showChampions = d3.select("#showChampions").property("checked");
+      const showMarkers = d3.select("#showMarkers").property("checked");
+      const showWrappedLabels = d3.select("#showWrappedLabels").property("checked");
+      const leagueFilter = d3.select("#leagueFilter").property("value");
+      const sortBy = d3.select("#sortBy").property("value");
+      const searchTerm = d3.select("#searchTeam").property("value").toLowerCase();
+      const selectedYear = +d3.select("#yearSlider").property("value");
+
+      // Update year display
+      d3.select("#yearDisplay").text(
+        selectedYear >= currentYear ? `${currentYear} (All)` : selectedYear
+      );
+
+      // Filter data based on all criteria
+      let data = globalData.teams;
+      
+      // Filter by year - only show teams that existed in NBA in the selected year
+      if (selectedYear < currentYear) {
+        data = data.filter(team => {
+          return team.segments.some(seg => {
+            return seg.start <= selectedYear && 
+                   (!seg.end || seg.end >= selectedYear) &&
+                   seg.league === "NBA";
+          });
+        });
+      }
+      
+      // Filter defunct teams
+      if (!showDefunct) {
+        data = data.filter(team => {
+          return team.segments.some(s => !s.end);
+        });
+      }
+      
+      // Filter only teams with championships
+      if (showChampions) {
+        data = data.filter(team => team.markers && team.markers.length > 0);
+      }
+      
+      // Filter by league
+      if (leagueFilter !== "all") {
+        data = data.filter(team => {
+          return team.segments.some(s => s.league === leagueFilter);
+        });
+      }
+      
+      // Filter by search term
+      if (searchTerm) {
+        data = data.filter(team => {
+          return team.lastName.toLowerCase().includes(searchTerm) ||
+                 team.segments.some(s => s.label.toLowerCase().includes(searchTerm));
+        });
+      }
+      
+      // Sort data
+      if (sortBy === "championships") {
+        data = data.sort((a, b) => {
+          const aCount = (a.markers || []).length;
+          const bCount = (b.markers || []).length;
+          return bCount - aCount; // Descending
+        });
+      } else if (sortBy === "founded") {
+        data = data.sort((a, b) => {
+          const aStart = d3.min(a.segments, s => s.start);
+          const bStart = d3.min(b.segments, s => s.start);
+          return aStart - bStart; // Ascending
+        });
+      } else { // name
+        data = data.sort((a, b) => a.lastName.localeCompare(b.lastName));
+      }
+      
+      // Update team count
+      d3.select("#teamCount").text(`Showing ${data.length} team${data.length !== 1 ? 's' : ''}`);
+
+      // ---- 2) Layout ----
+      const svg = d3.select("#chart");
+      const width = window.innerWidth - 40; // full width minus padding
+      const margin = { top: 40, right: 30, bottom: 0, left: 30 };
+      const rowH = 26;
+      const height = margin.top + margin.bottom + data.length * rowH;
+
+      svg.attr("width", width).attr("height", height);
+
+      const innerW = width - margin.left - margin.right;
+      const innerH = height - margin.top - margin.bottom;
+
+      const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+      // ---- 3) Scales ----
+      const minYear = d3.min(data, d => d3.min(d.segments, s => s.start));
+      const maxYear = selectedYear;
+
+      // Piecewise scale: compress pre-1946, expand 1946+
+      const breakYear = 1946;
+      const preBreakRatio = 0.05; // Pre-1946 takes only 5% of width
+      
+      const x = d3.scaleLinear()
+        .domain([minYear, breakYear, maxYear])
+        .range([0, innerW * preBreakRatio, innerW]);
+
+      const y = d3.scaleBand()
+        .domain(data.map(d => d.lastName))
+        .range([0, innerH])
+        .paddingInner(0.25);
+
+      // ---- 4) Grid ----
+      const gridTicks = x.ticks(20).filter(year => year >= breakYear);
+      
+      const grid = d3.axisBottom(x)
+        .tickValues(gridTicks)
+        .tickSize(-innerH)
+        .tickFormat("");
+
+      g.append("g")
+        .attr("class", "grid")
+        .attr("transform", `translate(0,${innerH})`)
+        .call(grid);
+
+      // ---- 4b) Sticky X-Axis (in separate SVG) ----
+      const axisSvg = d3.select("#axisChart");
+      axisSvg.attr("width", width).attr("height", 35);
+      
+      const axisG = axisSvg.append("g")
+        .attr("transform", `translate(${margin.left},10)`);
+      
+      const xAxis = d3.axisBottom(x)
+        .tickValues(gridTicks)
+        .tickFormat(d3.format("d"));
+      
+      axisG.append("g")
+        .attr("class", "axis")
+        .call(xAxis);
+
+      // ---- 6) Segments (colored bars) ----
+      const row = g.append("g")
+        .selectAll("g.row")
+        .data(data)
+        .join("g")
+        .attr("class", "row")
+        .attr("transform", d => `translate(0,${y(d.lastName)})`);
+
+    
+      const rects = row.selectAll("rect")
+        .data(d => d.segments.map(s => ({...s, team: d.lastName})))
+        .join("rect")
+        .attr("x", s => x(s.start))
+        .attr("y", 0)
+        .attr("width", s => {
+          const endYear = Math.min(s.end || selectedYear, selectedYear);
+          return Math.max(1, x(endYear) - x(s.start));
+        })
+        .attr("height", y.bandwidth())
+        .attr("fill", s => s.backgroundColor || "#CCCCCC")
+        .on("mouseover", function(event, s) {
+          tooltip
+            .style("opacity", 1)
+            .html(`${s.label}<br/>${s.start}–${s.end || 'present'}`)
+            .style("left", (event.clientX + 10) + "px")
+            .style("top", (event.clientY - 10) + "px");
+        })
+        .on("mousemove", function(event) {
+          tooltip
+            .style("left", (event.clientX + 10) + "px")
+            .style("top", (event.clientY - 10) + "px");
+        })
+        .on("mouseout", function() {
+          tooltip.style("opacity", 0);
+        });
+
+      // ---- 6b) Lines between segments ----
+      row.selectAll("line.segment-divider")
+        .data(d => d.segments.slice(0, -1).map((s, i) => ({
+          x: Math.min(s.end || selectedYear, selectedYear),
+          team: d.lastName
+        })).filter(s => s.x <= selectedYear))
+        .join("line")
+        .attr("class", "segment-divider")
+        .attr("x1", s => x(s.x))
+        .attr("x2", s => x(s.x))
+        .attr("y1", 0)
+        .attr("y2", y.bandwidth())
+        .attr("stroke", "#333333")
+        .attr("stroke-width", 3);
+
+      // ---- 7) Segment labels (wrap text if needed) ----
+      row.selectAll("text.seg-label")
+        .data(d => d.segments.map((s, i) => ({...s, team: d.lastName, segmentIndex: i})))
+        .join("text")
+        .attr("class", "seg-label")
+        .attr("y", y.bandwidth() / 2)
+        .attr("fill", s => s.textColor || "#000000")
+        .each(function(s) {
+          const textElement = d3.select(this);
+          textElement.selectAll("*").remove(); // Clear any existing content
+          
+          const words = s.label.split(' ');
+          const endYear = Math.min(s.end || selectedYear, selectedYear);
+          const segW = x(endYear) - x(s.start);
+          const centerX = (x(s.start) + x(endYear)) / 2;
+          const rightX = x(endYear) - 6;
+          const leftX = x(s.start) - 6;
+          const lineHeight = 12;
+          
+          // Check if it's the first segment and text won't fit
+          const isFirstSegment = s.segmentIndex === 0;
+          const singleLineText = s.label;
+          const tempTspan = textElement.append("tspan").text(singleLineText);
+          const textWidth = tempTspan.node().getComputedTextLength();
+          tempTspan.remove();
+          
+          if (isFirstSegment && textWidth + 12 > segW) {
+            // Place label to the left of the segment
+            textElement.append("tspan")
+              .attr("x", leftX)
+              .attr("dy", 0)
+              .text(s.label);
+            textElement.attr("text-anchor", "end");
+            textElement.attr("fill", "#000000"); // Black text for external labels
+            return; // Exit early, don't wrap
+          }
+          
+          let line = [];
+          let lineNumber = 0;
+          
+          // Start with right-aligned position
+          let tspan = textElement.append("tspan")
+            .attr("x", rightX)
+            .attr("dy", 0);
+          
+          words.forEach((word, i) => {
+            line.push(word);
+            tspan.text(line.join(' '));
+            
+            if (tspan.node().getComputedTextLength() + 12 > segW && line.length > 1) {
+              line.pop();
+              tspan.text(line.join(' '));
+              line = [word];
+              tspan = textElement.append("tspan")
+                .attr("x", rightX)
+                .attr("dy", lineHeight)
+                .text(word);
+              lineNumber++;
+            }
+          });
+        
+        // If wrapped (multiple lines), center align; otherwise right align
+        if (lineNumber > 0) {
+          if (showWrappedLabels) {
+            textElement.attr("text-anchor", "middle");
+            textElement.selectAll("tspan").attr("x", centerX);
+          } else {
+            // Hide wrapped labels if toggle is off
+            textElement.remove();
+            return;
+          }
+        } else {
+          textElement.attr("text-anchor", "end");
+        }
+        
+        // Adjust vertical position to center multi-line text
+        const totalHeight = (lineNumber + 1) * lineHeight;
+        textElement.attr("transform", `translate(0, ${-totalHeight / 2 + lineHeight / 2})`);
+      });
+
+      // ---- 8) Markers (championship dots) ----
+      if (showMarkers) {
+        row.selectAll("circle")
+          .data(d => (d.markers || []).filter(m => m.year <= selectedYear).map(m => ({...m, team: d.lastName})))
+          .join("circle")
+          .attr("cx", m => x(m.year))
+          .attr("cy", y.bandwidth() / 1.5)
+          .attr("r", 3)
+          .attr("fill", "white")
+          .attr("stroke", "#333")
+          .on("mouseover", function(event, m) {
+            tooltip
+              .style("opacity", 1)
+              .html(`${m.label ?? 'Marker'}<br/>${m.year}`)
+              .style("left", (event.clientX + 10) + "px")
+              .style("top", (event.clientY - 10) + "px");
+          })
+          .on("mousemove", function(event) {
+            tooltip
+              .style("left", (event.clientX + 10) + "px")
+              .style("top", (event.clientY - 10) + "px");
+          })
+          .on("mouseout", function() {
+            tooltip.style("opacity", 0);
+          });
+      }
+
+    // ---- 9) Year highlight line (render last so it's on top) ----
+    g.append("line")
+      .attr("class", "year-highlight-line")
+      .attr("y1", 0)
+      .attr("y2", innerH)
+      .style("opacity", 0);
+
+    // ---- 10) Track mouse across entire SVG ----
+    const yearTooltip = d3.select("#yearTooltip");
+    const yearHighlightLine = g.select(".year-highlight-line");
+    
+    svg.on("mousemove", function(event) {
+      const [mouseX, mouseY] = d3.pointer(event);
+      // Adjust for margins
+      const adjustedX = mouseX - margin.left;
+      const adjustedY = mouseY - margin.top;
+      
+      // Check if we're in the chart area
+      if (adjustedX >= 0 && adjustedX <= innerW && adjustedY >= 0 && adjustedY <= innerH) {
+        const year = Math.round(x.invert(adjustedX));
+        
+        yearHighlightLine
+          .attr("x1", adjustedX)
+          .attr("x2", adjustedX)
+          .style("opacity", 1);
+        
+        yearTooltip
+          .style("opacity", 1)
+          .text(year)
+          .style("left", (event.clientX) + "px")
+          .style("top", (event.clientY - 40) + "px");
+      } else {
+        yearHighlightLine.style("opacity", 0);
+        yearTooltip.style("opacity", 0);
+      }
+    })
+    .on("mouseleave", function() {
+      yearHighlightLine.style("opacity", 0);
+      yearTooltip.style("opacity", 0);
+    });
+
+    // ---- : a vertical reference line  ----
+    for (const {year, label, textAnchor} of globalData.refYears.filter(ref => ref.year <= selectedYear)) {
+        g.append("line")
+        .attr("x1", x(year))
+        .attr("x2", x(year))
+        .attr("y1", 0)
+        .attr("y2", innerH)
+        .attr("stroke", "#666")
+        .attr("stroke-width", 1);
+
+        g.append("text")
+        .attr("x", x(year))
+        .attr("y", -10)
+        .attr("text-anchor", textAnchor)
+        .attr("font-size", 12)
+        .text(label);
+    }
+  }
+
+  // Initial render
+  renderChart();
+
+  // Event listeners for all controls
+  d3.select("#showDefunct").on("change", renderChart);
+  d3.select("#showChampions").on("change", renderChart);
+  d3.select("#showMarkers").on("change", renderChart);
+  d3.select("#showWrappedLabels").on("change", renderChart);
+  d3.select("#leagueFilter").on("change", renderChart);
+  d3.select("#sortBy").on("change", renderChart);
+  d3.select("#searchTeam").on("input", renderChart);
+  
+  // Year slider with tooltip
+  const sliderTooltip = d3.select("#yearTooltip");
+  
+  d3.select("#yearSlider").on("input", function() {
+    const value = +this.value;
+    // Snap to nearest significant year
+    const nearest = significantYears.reduce((prev, curr) => 
+      Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev
+    );
+    // Only snap if not at max (current year)
+    if (value < currentYear) {
+      d3.select(this).property("value", nearest);
+    }
+    renderChart();
+  })
+  .on("mousemove", function(event) {
+    const rect = this.getBoundingClientRect();
+    const min = +this.min;
+    const max = +this.max;
+    
+    // Calculate year based on mouse position
+    const percent = (event.clientX - rect.left) / rect.width;
+    const hoverYear = Math.round(min + percent * (max - min));
+    
+    // Find nearest significant year
+    const nearest = significantYears.reduce((prev, curr) => 
+      Math.abs(curr - hoverYear) < Math.abs(prev - hoverYear) ? curr : prev
+    );
+    
+    sliderTooltip
+      .style("opacity", 1)
+      .text(nearest)
+      .style("left", (event.clientX) + "px")
+      .style("top", (rect.top - 35) + "px");
+  })
+  .on("mouseenter", function(event) {
+    const rect = this.getBoundingClientRect();
+    const min = +this.min;
+    const max = +this.max;
+    
+    // Calculate year based on mouse position
+    const percent = (event.clientX - rect.left) / rect.width;
+    const hoverYear = Math.round(min + percent * (max - min));
+    
+    // Find nearest significant year
+    const nearest = significantYears.reduce((prev, curr) => 
+      Math.abs(curr - hoverYear) < Math.abs(prev - hoverYear) ? curr : prev
+    );
+    
+    sliderTooltip
+      .style("opacity", 1)
+      .text(nearest)
+      .style("left", (event.clientX) + "px")
+      .style("top", (rect.top - 35) + "px");
+  })
+  .on("mouseleave", function() {
+    sliderTooltip.style("opacity", 0);
+  });
+  
+  // Reset button
+  d3.select("#resetFilters").on("click", function() {
+    d3.select("#showDefunct").property("checked", false);
+    d3.select("#showChampions").property("checked", false);
+    d3.select("#showMarkers").property("checked", true);
+    d3.select("#showWrappedLabels").property("checked", false);
+    d3.select("#leagueFilter").property("value", "all");
+    d3.select("#sortBy").property("value", "founded");
+    d3.select("#searchTeam").property("value", "");
+    d3.select("#yearSlider").property("value", currentYear);
+    renderChart();
+  });
+  
+  // Reset year button
+  d3.select("#resetYear").on("click", function() {
+    d3.select("#yearSlider").property("value", currentYear);
+    renderChart();
+  });
+  </script>
+</body>
+</html>
